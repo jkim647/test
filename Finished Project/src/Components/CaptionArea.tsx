@@ -25,6 +25,28 @@ export default class CaptionArea extends React.Component<IProps, IState>{
             result: [],
         }
     }
+
+    public postAudio = (blob:any) => {
+        fetch('https://westus.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language=en-US', {
+            body: blob, // this is a .wav audio file    
+            headers: {
+                'Accept': 'application/json',
+                'Authorization': 'Bearer' + window.localStorage.getItem("key"),
+                'Content-Type': 'audio/wav;codec=audio/pcm; samplerate=16000',
+                'Ocp-Apim-Subscription-Key': '7adbab792b34492ab4b0e6ba3886c66e'
+            },    
+            method: 'POST'
+        }).then((res) => {
+            console.log(res)
+            return res.json()
+        }).then((res: any) => {
+            console.log(res.DisplayText)
+            this.setState({input:res.DisplayText})
+            this.search()
+        }).catch((error) => {
+            console.log("Error", error)
+        });
+    }
         
 
     public search = () => {
@@ -40,6 +62,7 @@ export default class CaptionArea extends React.Component<IProps, IState>{
                 return response.json()
             }).then(answer => {
                 this.setState({result:answer},()=>this.makeTableBody())
+                
             })
         }
     }
@@ -56,10 +79,11 @@ export default class CaptionArea extends React.Component<IProps, IState>{
     };
     
     const onMediaSuccess = (stream: any) => {
+        
         const mediaRecorder = new MediaStreamRecorder(stream);
         mediaRecorder.mimeType = 'audio/wav'; // check this line for audio/wav
         mediaRecorder.ondataavailable = (blob: any) => {
-            // this.postAudio(blob);
+         this.postAudio(blob);
             mediaRecorder.stop()
         }
         mediaRecorder.start(3000);
@@ -68,8 +92,8 @@ export default class CaptionArea extends React.Component<IProps, IState>{
     function onMediaError(e: any) {
         console.error('media error', e);
     }
-    let accessToken: any;
-    fetch('https://westus.api.cognitive.microsoft.com/sts/v1.0', {
+    
+    fetch('https://westus.api.cognitive.microsoft.com/sts/v1.0/issueToken', {
         headers: {
             'Content-Length': '0',
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -78,16 +102,16 @@ export default class CaptionArea extends React.Component<IProps, IState>{
         method: 'POST'
         
     }).then((response) => {
-        console.log(response.text())
         return response.text()
     }).then((response) => {
-        console.log(response)
-        accessToken = response
+        window.localStorage.setItem("Key", response)
+
         
     }).catch((error) => {
         console.log("Error", error)
     });
-    console.log(accessToken)
+
+
 
     navigator.getUserMedia(mediaConstraints, onMediaSuccess, onMediaError)
 
